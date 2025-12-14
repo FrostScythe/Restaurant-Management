@@ -1,3 +1,5 @@
+package com.restaurantmanagement.order_api.service;
+
 import com.restaurantmanagement.order_api.entity.MenuItem;
 import com.restaurantmanagement.order_api.entity.Restaurant;
 import com.restaurantmanagement.order_api.repository.MenuItemRepository;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+// In MenuItemService.java
 @Service
 @Transactional
 public class MenuItemService {
@@ -21,89 +24,52 @@ public class MenuItemService {
     @Autowired
     private RestaurantRepository restaurantRepository;
 
-    // Create menu item FOR a specific restaurant
-    public String createMenuItem(Long restaurantId, MenuItem menuItem) {
-        Optional<Restaurant> restaurantOpt = restaurantRepository.findById(restaurantId);
+    // Return MenuItem instead of String
+    public MenuItem createMenuItem(Long restaurantId, MenuItem menuItem) {
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new RuntimeException("Restaurant not found with id: " + restaurantId));
 
-        if (restaurantOpt.isEmpty()) {
-            return "Error: Restaurant with ID " + restaurantId + " not found";
-        }
-
-        menuItem.setRestaurant(restaurantOpt.get());
-        menuItemRepository.save(menuItem);
-        return "Menu item created successfully for restaurant ID " + restaurantId;
+        menuItem.setRestaurant(restaurant);
+        return menuItemRepository.save(menuItem);
     }
 
-    // Get menu item WITH restaurant validation
-    public ResponseEntity<String> getMenuItem(Long restaurantId, Long menuItemId) {
-        Optional<MenuItem> menuItemOpt = menuItemRepository.findById(menuItemId);
-
-        if (menuItemOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Error: Menu item with ID " + menuItemId + " not found");
-        }
-
-        MenuItem menuItem = menuItemOpt.get();
+    // Return MenuItem instead of ResponseEntity<String>
+    public MenuItem getMenuItem(Long restaurantId, Long menuItemId) {
+        MenuItem menuItem = menuItemRepository.findById(menuItemId)
+                .orElseThrow(() -> new RuntimeException("Menu item not found with id: " + menuItemId));
 
         // Verify it belongs to the specified restaurant
         if (!menuItem.getRestaurant().getId().equals(restaurantId)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Error: Menu item with ID " + menuItemId +
-                            " does not belong to restaurant ID " + restaurantId);
+            throw new RuntimeException("Menu item does not belong to this restaurant");
         }
 
-        String response = String.format(
-                "Menu Item Details: Name - %s, Description - %s, Price - %.2f",
-                menuItem.getName(),
-                menuItem.getDescription(),
-                menuItem.getPrice()
-        );
-
-        return ResponseEntity.ok(response);
+        return menuItem;
     }
 
-    public String updateMenuItem(Long restaurantId, Long menuItemId, MenuItem updatedItem) {
-        // First check if menu item exists
-        Optional<MenuItem> existingItemOpt = menuItemRepository.findById(menuItemId);
-
-        if (existingItemOpt.isEmpty()) {
-            return "Error: Menu item with ID " + menuItemId + " not found";
+    // Add this method for getting restaurant menu
+    public List<MenuItem> getMenuByRestaurant(Long restaurantId) {
+        // Verify restaurant exists
+        if (!restaurantRepository.existsById(restaurantId)) {
+            throw new RuntimeException("Restaurant not found with id: " + restaurantId);
         }
 
-        MenuItem existingItem = existingItemOpt.get();
+        return menuItemRepository.findByRestaurantId(restaurantId);
+    }
 
-        // Verify it belongs to the specified restaurant
-        if (!existingItem.getRestaurant().getId().equals(restaurantId)) {
-            return "Error: Menu item with ID " + menuItemId +
-                    " does not belong to restaurant ID " + restaurantId;
-        }
+    // Return MenuItem instead of String
+    public MenuItem updateMenuItem(Long restaurantId, Long menuItemId, MenuItem updatedItem) {
+        MenuItem existingItem = getMenuItem(restaurantId, menuItemId);
 
-        // Update fields
         existingItem.setName(updatedItem.getName());
         existingItem.setDescription(updatedItem.getDescription());
         existingItem.setPrice(updatedItem.getPrice());
 
-        menuItemRepository.save(existingItem);
-        return "Menu item '" + existingItem.getName() + "' updated successfully";
+        return menuItemRepository.save(existingItem);
     }
 
-    public String deleteMenuItem(Long restaurantId, Long menuItemId) {
-        Optional<MenuItem> menuItemOpt = menuItemRepository.findById(menuItemId);
-
-        if (menuItemOpt.isEmpty()) {
-            return "Error: Menu item with ID " + menuItemId + " not found";
-        }
-
-        MenuItem menuItem = menuItemOpt.get();
-
-        // Verify it belongs to the specified restaurant
-        if (!menuItem.getRestaurant().getId().equals(restaurantId)) {
-            return "Error: Menu item with ID " + menuItemId +
-                    " does not belong to restaurant ID " + restaurantId;
-        }
-
-        String itemName = menuItem.getName();
+    // Return void instead of String
+    public void deleteMenuItem(Long restaurantId, Long menuItemId) {
+        MenuItem menuItem = getMenuItem(restaurantId, menuItemId);
         menuItemRepository.delete(menuItem);
-        return "Menu item '" + itemName + "' deleted successfully";
     }
 }

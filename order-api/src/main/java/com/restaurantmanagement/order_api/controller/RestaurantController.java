@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+// In RestaurantController.java - Fix the endpoints
+
 @RestController
 @RequestMapping("/api/restaurants")
 public class RestaurantController {
@@ -17,12 +19,10 @@ public class RestaurantController {
     @Autowired
     private RestaurantService restaurantService;
 
-    // ========== RESTAURANT CRUD OPERATIONS ==========
-
     // CREATE - Register new restaurant
     @PostMapping
     public ResponseEntity<Restaurant> createRestaurant(@RequestBody Restaurant restaurant) {
-        Restaurant createdRestaurant = restaurantService.createRestaurant(restaurant);
+        Restaurant createdRestaurant = restaurantService.registerRestaurant(restaurant);
         return new ResponseEntity<>(createdRestaurant, HttpStatus.CREATED);
     }
 
@@ -36,15 +36,14 @@ public class RestaurantController {
     // READ - Get restaurant by ID
     @GetMapping("/{id}")
     public ResponseEntity<Restaurant> getRestaurantById(@PathVariable Long id) {
-        Restaurant restaurant = restaurantService.getRestaurantById(id);
+        Restaurant restaurant = restaurantService.getRestaurantDetails(id);
         return ResponseEntity.ok(restaurant);
     }
 
     // UPDATE - Update restaurant details
     @PutMapping("/{id}")
     public ResponseEntity<Restaurant> updateRestaurant(@PathVariable Long id, @RequestBody Restaurant restaurant) {
-        restaurant.setId(id); // Ensure ID matches path
-        Restaurant updatedRestaurant = restaurantService.updateRestaurant(restaurant);
+        Restaurant updatedRestaurant = restaurantService.updateRestaurantDetails(id, restaurant);
         return ResponseEntity.ok(updatedRestaurant);
     }
 
@@ -55,7 +54,7 @@ public class RestaurantController {
         return ResponseEntity.noContent().build();
     }
 
-    // ========== MENU ITEM OPERATIONS (Sub-resources) ==========
+    // ========== MENU ITEM OPERATIONS ==========
 
     // GET restaurant's full menu
     @GetMapping("/{restaurantId}/menu")
@@ -91,8 +90,7 @@ public class RestaurantController {
             @PathVariable Long menuItemId,
             @RequestBody MenuItem menuItem) {
 
-        menuItem.setId(menuItemId); // Ensure ID matches
-        MenuItem updatedMenuItem = restaurantService.updateMenuItem(restaurantId, menuItem);
+        MenuItem updatedMenuItem = restaurantService.updateMenuItem(restaurantId, menuItemId, menuItem);
         return ResponseEntity.ok(updatedMenuItem);
     }
 
@@ -104,17 +102,5 @@ public class RestaurantController {
 
         restaurantService.deleteMenuItem(restaurantId, menuItemId);
         return ResponseEntity.noContent().build();
-    }
-
-    // ========== RESTAURANT ORDERS ==========
-
-    // GET restaurant's orders
-    @GetMapping("/{id}/orders")
-    public ResponseEntity<?> getRestaurantOrders(@PathVariable Long id) {
-        // This depends on your RestaurantService method
-        // If you have: restaurantService.getRestaurantOrders(id)
-        // return ResponseEntity.ok(orders);
-
-        return ResponseEntity.ok("Orders for restaurant " + id + " (implement in service)");
     }
 }
