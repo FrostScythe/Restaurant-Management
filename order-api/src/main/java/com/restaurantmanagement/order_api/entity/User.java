@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.util.List;
 
 @Entity
-@Table(name = "user_table") // Changed because "user" is a reserved word in some databases
+@Table(name = "user_info") // Changed because "user" is a reserved word in some databases
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
