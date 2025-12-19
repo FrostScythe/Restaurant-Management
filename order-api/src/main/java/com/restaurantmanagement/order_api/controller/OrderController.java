@@ -10,20 +10,22 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/orders")
+@RequestMapping("/api/orders")
 public class OrderController {
 
     @Autowired
     private OrderService orderService;
 
     // Place Order
-    @PostMapping("/place")
-    public Order placeOrder(@RequestParam Long userId,
-                            @RequestParam Long restaurantId,
-                            @RequestBody Map<Long, Integer> itemsWithQuantity) {
+    @PostMapping("/place-order")
+    public Order placeOrder(
+            @RequestParam Long userId,
+            @RequestParam Long restaurantId,
+            @RequestBody Map<Long, Integer> itemsWithQuantity) {
 
         return orderService.placeOrder(userId, restaurantId, itemsWithQuantity);
     }
+
 
     // Get Order by ID
     @GetMapping("/{orderId}")

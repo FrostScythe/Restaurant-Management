@@ -1,5 +1,6 @@
 package com.restaurantmanagement.order_api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -22,10 +23,12 @@ public class Restaurant {
 
     // One restaurant can have many menu items
     @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<MenuItem> menuItems;
 
     // One restaurant can have many orders
     @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Order> orders;
 
     // Getters and Setters

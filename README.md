@@ -238,19 +238,12 @@ http://localhost:8080
 
 #### 4.1 Create Order
 - Method: `POST`
-- URL: `/api/orders`
+- URL: `/place-order`
 - Request Body (JSON):
 ```json
 {
-  "userId": 1,
-  "restaurantId": 1,
-  "items": [
-    { "menuItemId": 1, "quantity": 2 },
-    { "menuItemId": 2, "quantity": 1 }
-  ],
-  "deliveryAddress": "123 Main Street, City, Country",
-  "paymentMethod": "CASH",
-  "notes": "Leave at door"
+  "1": 2,
+  "2": 1
 }
 ```
 - Response (example):
@@ -297,17 +290,12 @@ http://localhost:8080
 }
 ```
 
-#### 4.6 Delete Order
-- Method: `DELETE`
-- URL: `/api/orders/{id}`
-- Example: `/api/orders/10`
-
-#### 4.7 Get Orders by User
+#### 4.6 Get Orders by User
 - Method: `GET`
 - URL: `/api/users/{userId}/orders`
 - Example: `/api/users/1/orders`
 
-#### 4.8 Get Orders by Restaurant
+#### 4.7 Get Orders by Restaurant
 - Method: `GET`
 - URL: `/api/restaurants/{restaurantId}/orders`
 - Example: `/api/restaurants/1/orders`
