@@ -104,15 +104,4 @@ public class OrderServiceImp implements OrderService {
 
         return orderRepository.save(info);
     }
-
-    @Override
-    public Order cancelOrder(Long orderId) {
-        Order info= orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
-
-        if(info.getStatus()==OrderStatus.DELIVERED){
-            throw new RuntimeException("Delivered orders cannot be updated");
-        }
-        info.setStatus(OrderStatus.CANCELLED);
-        return null;
-    }
 }

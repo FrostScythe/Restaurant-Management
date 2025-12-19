@@ -232,6 +232,88 @@ http://localhost:8080
 
 ---
 
+### 4. Order Management APIs
+
+#### Base Path: `/api/orders`
+
+#### 4.1 Create Order
+- Method: `POST`
+- URL: `/api/orders`
+- Request Body (JSON):
+```json
+{
+  "userId": 1,
+  "restaurantId": 1,
+  "items": [
+    { "menuItemId": 1, "quantity": 2 },
+    { "menuItemId": 2, "quantity": 1 }
+  ],
+  "deliveryAddress": "123 Main Street, City, Country",
+  "paymentMethod": "CASH",
+  "notes": "Leave at door"
+}
+```
+- Response (example):
+```json
+{
+  "id": 10,
+  "userId": 1,
+  "restaurantId": 1,
+  "items": [
+    { "menuItemId": 1, "quantity": 2, "price": 12.99 },
+    { "menuItemId": 2, "quantity": 1, "price": 8.99 }
+  ],
+  "totalPrice": 34.97,
+  "status": "PENDING",
+  "deliveryAddress": "123 Main Street, City, Country",
+  "createdAt": "2025-01-01T12:00:00"
+}
+```
+
+#### 4.2 Get All Orders
+- Method: `GET`
+- URL: `/api/orders`
+- Response: array of order objects (JSON)
+
+#### 4.3 Get Order by ID
+- Method: `GET`
+- URL: `/api/orders/{id}`
+- Example: `/api/orders/10`
+- Response: single order object (JSON)
+
+#### 4.4 Update Order (full update)
+- Method: `PUT`
+- URL: `/api/orders/{id}`
+- Request Body (JSON): same shape as create (fields allowed by API)
+- Example: `/api/orders/10`
+
+#### 4.5 Update Order Status (partial)
+- Method: `PATCH`
+- URL: `/api/orders/{id}/status`
+- Request Body (JSON):
+```json
+{
+  "status": "CONFIRMED"
+}
+```
+
+#### 4.6 Delete Order
+- Method: `DELETE`
+- URL: `/api/orders/{id}`
+- Example: `/api/orders/10`
+
+#### 4.7 Get Orders by User
+- Method: `GET`
+- URL: `/api/users/{userId}/orders`
+- Example: `/api/users/1/orders`
+
+#### 4.8 Get Orders by Restaurant
+- Method: `GET`
+- URL: `/api/restaurants/{restaurantId}/orders`
+- Example: `/api/restaurants/1/orders`
+
+---
+
 ## Testing with cURL
 
 ### User Endpoints
@@ -300,6 +382,39 @@ curl -X PUT http://localhost:8080/api/restaurants/1/menu/1 ^
 curl -X DELETE http://localhost:8080/api/restaurants/1/menu/1
 ```
 
+### Order Endpoints
+```bash
+# Create Order
+curl -X POST http://localhost:8080/api/orders ^
+  -H "Content-Type: application/json" ^
+  -d "{\"userId\":1,\"restaurantId\":1,\"items\":[{\"menuItemId\":1,\"quantity\":2},{\"menuItemId\":2,\"quantity\":1}],\"deliveryAddress\":\"123 Main St\",\"paymentMethod\":\"CASH\"}"
+
+# Get All Orders
+curl -X GET http://localhost:8080/api/orders
+
+# Get Order by ID
+curl -X GET http://localhost:8080/api/orders/10
+
+# Update Order (full)
+curl -X PUT http://localhost:8080/api/orders/10 ^
+  -H "Content-Type: application/json" ^
+  -d "{\"userId\":1,\"restaurantId\":1,\"items\":[{\"menuItemId\":1,\"quantity\":3}],\"deliveryAddress\":\"123 Main St\"}"
+
+# Update Order Status (partial)
+curl -X PATCH http://localhost:8080/api/orders/10/status ^
+  -H "Content-Type: application/json" ^
+  -d "{\"status\":\"DELIVERED\"}"
+
+# Delete Order
+curl -X DELETE http://localhost:8080/api/orders/10
+
+# Get Orders by User
+curl -X GET http://localhost:8080/api/users/1/orders
+
+# Get Orders by Restaurant
+curl -X GET http://localhost:8080/api/restaurants/1/orders
+```
+
 ---
 
 ## Testing with Postman
@@ -310,11 +425,25 @@ curl -X DELETE http://localhost:8080/api/restaurants/1/menu/1
 
 2. **Create requests for each endpoint listed above**
 
-3. **Test the following flow:**
+3. **Recommended request list to create/import:**
+   - `POST /api/users/register` (create user)
+   - `GET /api/users` (list users)
+   - `POST /api/restaurants` (create restaurant)
+   - `GET /api/restaurants` (list restaurants)
+   - `POST /api/restaurants/{restaurantId}/menu` (add menu item)
+   - `GET /api/restaurants/{restaurantId}/menu` (get menu)
+   - `POST /api/orders` (create order)
+   - `GET /api/orders` (list orders)
+   - `GET /api/orders/{id}` (get order)
+   - `PUT /api/orders/{id}` (update order)
+   - `PATCH /api/orders/{id}/status` (update order status)
+   - `DELETE /api/orders/{id}` (delete order)
+
+4. **Test flow example:**
    1. Create a restaurant
    2. Add menu items to the restaurant
    3. Create a user
-   4. Create an order (if order endpoints are implemented)
+   4. Create an order using the user's id and restaurant's id
 
 ---
 
@@ -381,5 +510,3 @@ order-api/
 - Order status tracking
 - Search and filter capabilities
 - Pagination for list endpoints
-
-

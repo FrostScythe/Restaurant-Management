@@ -42,10 +42,4 @@ public class OrderController {
     public Order updateOrderStatus(@PathVariable Long orderId, @RequestParam OrderStatus status) {
         return orderService.updateOrderStatus(orderId, status);
     }
-
-    //Cancel Order
-    @PutMapping("/{orderId}")
-    public Order cancelOrder(@PathVariable Long orderId) {
-        return orderService.cancelOrder(orderId);
-    }
 }
