@@ -2,6 +2,7 @@ package com.restaurantmanagement.order_api.service.imp;
 
 import com.restaurantmanagement.order_api.entity.*;
 import com.restaurantmanagement.order_api.entity.MenuItem;
+import com.restaurantmanagement.order_api.exception.OrderNotFoundException;
 import com.restaurantmanagement.order_api.repository.MenuItemRepository;
 import com.restaurantmanagement.order_api.repository.OrderRepository;
 import com.restaurantmanagement.order_api.repository.RestaurantRepository;
@@ -31,7 +32,7 @@ public class OrderServiceImp implements OrderService {
 
     @Override
     public Order placeOrder(Long userId,Long restaurantId,Map<Long, Integer> itemsWithQuantity) {
-
+//
         // 1️⃣ Fetch User
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -39,7 +40,6 @@ public class OrderServiceImp implements OrderService {
         // 2️⃣ Fetch Restaurant
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
-
         double totalPrice = 0;
         int totalItemCount = 0;
         List<MenuItem> orderedItems = new ArrayList<>();
@@ -88,7 +88,9 @@ public class OrderServiceImp implements OrderService {
 
     @Override
     public Order updateOrderStatus(Long orderId, OrderStatus newStatus) {
-        Order info= orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
+        Order info = orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
+
 
         OrderStatus currStatus= info.getStatus();
 

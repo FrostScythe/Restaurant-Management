@@ -4,6 +4,8 @@ import com.restaurantmanagement.order_api.entity.Order;
 import com.restaurantmanagement.order_api.entity.OrderStatus;
 import com.restaurantmanagement.order_api.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -41,7 +43,8 @@ public class OrderController {
 
     //update order status
     @PutMapping("/{orderId}")
-    public Order updateOrderStatus(@PathVariable Long orderId, @RequestParam OrderStatus status) {
-        return orderService.updateOrderStatus(orderId, status);
+    public ResponseEntity<Order> updateOrderStatus(@PathVariable Long orderId, @RequestParam OrderStatus status) {
+        Order updatedOrder = orderService.updateOrderStatus(orderId, status);
+        return ResponseEntity.ok(updatedOrder);
     }
 }
