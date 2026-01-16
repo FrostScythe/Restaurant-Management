@@ -1,5 +1,6 @@
 package com.restaurantmanagement.order_api.entity;
 
+import com.restaurantmanagement.order_api.exception.BadRequestException;
 import jakarta.persistence.*;
 
 @Entity
@@ -7,24 +8,40 @@ import jakarta.persistence.*;
 public class MenuItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "menu_id")
     private Long id;
 
-    @Column(nullable = false)
     private String name;
-
-    @Column(nullable = false)
     private String description;
-
-    @Column(nullable = false)
     private double price;
 
-    // Many menu items belong to one restaurant
+    // NEW: Track inventory
+    @Column(nullable = false)
+    private Integer stockQuantity = 0;
+
+    @Column(nullable = false)
+    private boolean available = true;
+
     @ManyToOne
     @JoinColumn(name = "restaurant_id", nullable = false)
     private Restaurant restaurant;
 
-    // Getters and Setters
+    // Method to check if item can be ordered
+    public boolean canOrder(int quantity) {
+        return available && stockQuantity >= quantity;
+    }
+
+    // Method to reduce stock
+    public void reduceStock(int quantity) {
+        if (!canOrder(quantity)) {
+            throw new BadRequestException("Insufficient stock for: " + name);
+        }
+        this.stockQuantity -= quantity;
+        if (this.stockQuantity == 0) {
+            this.available = false;
+        }
+    }
+
+    // Getters and setters
 
     public Long getId() {
         return id;
@@ -56,6 +73,22 @@ public class MenuItem {
 
     public void setPrice(double price) {
         this.price = price;
+    }
+
+    public Integer getStockQuantity() {
+        return stockQuantity;
+    }
+
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stockQuantity = stockQuantity;
+    }
+
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void setAvailable(boolean available) {
+        this.available = available;
     }
 
     public Restaurant getRestaurant() {

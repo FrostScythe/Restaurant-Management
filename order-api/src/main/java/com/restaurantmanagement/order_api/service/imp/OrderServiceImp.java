@@ -10,8 +10,10 @@ import com.restaurantmanagement.order_api.repository.OrderRepository;
 import com.restaurantmanagement.order_api.repository.RestaurantRepository;
 import com.restaurantmanagement.order_api.repository.UserRepository;
 import com.restaurantmanagement.order_api.service.OrderService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,6 +22,7 @@ import java.util.Map;
 
 @Service
 public class OrderServiceImp implements OrderService {
+
     @Autowired
     private OrderRepository orderRepository;
 
@@ -33,7 +36,11 @@ public class OrderServiceImp implements OrderService {
     private MenuItemRepository menuItemRepository;
 
     @Override
-    public Order placeOrder(Long userId, Long restaurantId, Map<Long, Integer> itemsWithQuantity) {// Validate input early
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public Order placeOrder(Long userId, Long restaurantId,
+                            Map<Long, Integer> itemsWithQuantity) {
+
+        // Validate input
         if (itemsWithQuantity == null || itemsWithQuantity.isEmpty()) {
             throw new BadRequestException("Order must contain at least one item");
         }
@@ -45,41 +52,49 @@ public class OrderServiceImp implements OrderService {
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new NotFoundException("Restaurant", restaurantId));
 
-        // Validate quantities first
-        for (Map.Entry<Long, Integer> entry : itemsWithQuantity.entrySet()) {
-            if (entry.getValue() == null || entry.getValue() <= 0) {
-                throw new BadRequestException("Invalid quantity for menu item: " + entry.getKey());
-            }
-        }
-
-        // Fetch all menu items in one query
-        List<MenuItem> menuItems = menuItemRepository.findAllById(itemsWithQuantity.keySet());
-        if (menuItems.size() != itemsWithQuantity.size()) {
-            throw new NotFoundException("MenuItem", null);
-        }
-
         double totalPrice = 0;
         int totalItemCount = 0;
-
         List<MenuItem> orderedItemsList = new ArrayList<>();
 
-        for (MenuItem item : menuItems) {
-            if (!item.getRestaurant().getId().equals(restaurantId)) {
-                throw new BadRequestException("MenuItem " + item.getId() + " does not belong to this restaurant");
+        // Process each item with locking
+        for (Map.Entry<Long, Integer> entry : itemsWithQuantity.entrySet()) {
+            Long menuItemId = entry.getKey();
+            Integer quantity = entry.getValue();
+
+            if (quantity == null || quantity <= 0) {
+                throw new BadRequestException("Invalid quantity for menu item: " + menuItemId);
             }
 
-            int qty = itemsWithQuantity.get(item.getId());
+            // LOCK the menu item row
+            MenuItem menuItem = menuItemRepository.findByIdWithLock(menuItemId)
+                    .orElseThrow(() -> new NotFoundException("MenuItem", menuItemId));
 
-            // Add the item multiple times based on quantity
-            for (int i = 0; i < qty; i++) {
-                orderedItemsList.add(item);
+            // Verify restaurant
+            if (!menuItem.getRestaurant().getId().equals(restaurantId)) {
+                throw new BadRequestException(
+                        "MenuItem " + menuItemId + " does not belong to this restaurant");
             }
 
-            totalPrice += item.getPrice() * qty;
-            totalItemCount += qty;
+            // Check and reduce stock
+            if (!menuItem.canOrder(quantity)) {
+                throw new BadRequestException(
+                        "Item '" + menuItem.getName() + "' is not available in requested quantity. " +
+                                "Available: " + menuItem.getStockQuantity());
+            }
+
+            menuItem.reduceStock(quantity);
+            menuItemRepository.save(menuItem); // Save updated stock
+
+            // Add to order
+            for (int i = 0; i < quantity; i++) {
+                orderedItemsList.add(menuItem);
+            }
+
+            totalPrice += menuItem.getPrice() * quantity;
+            totalItemCount += quantity;
         }
 
-        // Create Order
+        // Create order
         Order order = new Order();
         order.setUser(user);
         order.setRestaurant(restaurant);
@@ -90,7 +105,6 @@ public class OrderServiceImp implements OrderService {
 
         return orderRepository.save(order);
     }
-
 
     @Override
     public Order getOrderById(Long orderId) {
@@ -104,6 +118,7 @@ public class OrderServiceImp implements OrderService {
     }
 
     @Override
+    @Transactional
     public Order updateOrderStatus(Long orderId, OrderStatus newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order", orderId));
@@ -118,7 +133,30 @@ public class OrderServiceImp implements OrderService {
             throw new InvalidOrderStateException("Cannot update order - already cancelled");
         }
 
+        // If cancelling, restore inventory
+        if (newStatus == OrderStatus.CANCELLED && currStatus == OrderStatus.PLACED) {
+            restoreInventory(order);
+        }
+
         order.setStatus(newStatus);
         return orderRepository.save(order);
     }
-}
+
+    private void restoreInventory(Order order) {
+        // Count quantities per item
+        Map<Long, Integer> itemQuantities = new HashMap<>();
+        for (MenuItem item : order.getOrderedItems()) {
+            itemQuantities.merge(item.getId(), 1, Integer::sum);
+        }
+
+        // Restore stock
+        for (Map.Entry<Long, Integer> entry : itemQuantities.entrySet()) {
+            MenuItem menuItem = menuItemRepository.findByIdWithLock(entry.getKey())
+                    .orElseThrow(() -> new NotFoundException("MenuItem", entry.getKey()));
+
+            menuItem.setStockQuantity(menuItem.getStockQuantity() + entry.getValue());
+            menuItem.setAvailable(true);
+            menuItemRepository.save(menuItem);
+        }
+    }
+} // <-- This closing brace was missing!
