@@ -5,6 +5,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -22,13 +25,6 @@ public class GlobalExceptionHandler {
                 .body(ex.getMessage());
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("An unexpected error occurred: " + ex.getMessage());
-    }
-
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<String> handleBadRequest(BadRequestException ex) {
         return ResponseEntity
@@ -41,5 +37,37 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
                 .body(ex.getMessage());
+    }
+
+    // NEW: Handle restaurant closed exception with detailed response
+    @ExceptionHandler(RestaurantClosedException.class)
+    public ResponseEntity<Map<String, Object>> handleRestaurantClosed(RestaurantClosedException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("error", "Restaurant Closed");
+        response.put("message", ex.getMessage());
+        response.put("restaurantName", ex.getRestaurantName());
+        response.put("reason", ex.getReason());
+
+        // Include timing information if available
+        if (ex.getOpeningTime() != null) {
+            response.put("openingTime", ex.getOpeningTime().toString());
+        }
+        if (ex.getClosingTime() != null) {
+            response.put("closingTime", ex.getClosingTime().toString());
+        }
+        if (ex.getLastOrderTime() != null) {
+            response.put("lastOrderTime", ex.getLastOrderTime().toString());
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)  // 503 status
+                .body(response);
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("An unexpected error occurred: " + ex.getMessage());
     }
 }

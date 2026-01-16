@@ -1,7 +1,6 @@
 package com.restaurantmanagement.order_api.service.imp;
 
 import com.restaurantmanagement.order_api.entity.*;
-import com.restaurantmanagement.order_api.entity.MenuItem;
 import com.restaurantmanagement.order_api.exception.BadRequestException;
 import com.restaurantmanagement.order_api.exception.InvalidOrderStateException;
 import com.restaurantmanagement.order_api.exception.NotFoundException;
@@ -52,6 +51,9 @@ public class OrderServiceImp implements OrderService {
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new NotFoundException("Restaurant", restaurantId));
 
+        // NEW: Validate restaurant operating hours (throws RestaurantClosedException if closed)
+        restaurant.validateOperatingHours();
+
         double totalPrice = 0;
         int totalItemCount = 0;
         List<MenuItem> orderedItemsList = new ArrayList<>();
@@ -83,7 +85,7 @@ public class OrderServiceImp implements OrderService {
             }
 
             menuItem.reduceStock(quantity);
-            menuItemRepository.save(menuItem); // Save updated stock
+            menuItemRepository.save(menuItem);
 
             // Add to order
             for (int i = 0; i < quantity; i++) {
@@ -159,4 +161,4 @@ public class OrderServiceImp implements OrderService {
             menuItemRepository.save(menuItem);
         }
     }
-} // <-- This closing brace was missing!
+}

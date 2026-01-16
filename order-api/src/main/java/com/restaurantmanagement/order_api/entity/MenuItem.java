@@ -8,32 +8,40 @@ import jakarta.persistence.*;
 public class MenuItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "menu_id")
     private Long id;
 
+    @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false)
     private String description;
+
+    @Column(nullable = false)
     private double price;
 
-    // NEW: Track inventory
+    // Inventory management fields
     @Column(nullable = false)
-    private Integer stockQuantity = 0;
+    private Integer stockQuantity = 100; // Default: 100 items in stock
 
     @Column(nullable = false)
-    private boolean available = true;
+    private boolean available = true; // Is item available for ordering?
 
+    // Many menu items belong to one restaurant
     @ManyToOne
     @JoinColumn(name = "restaurant_id", nullable = false)
     private Restaurant restaurant;
 
-    // Method to check if item can be ordered
+    // NEW: Business logic methods for inventory
     public boolean canOrder(int quantity) {
-        return available && stockQuantity >= quantity;
+        return available && stockQuantity != null && stockQuantity >= quantity;
     }
 
-    // Method to reduce stock
     public void reduceStock(int quantity) {
         if (!canOrder(quantity)) {
-            throw new BadRequestException("Insufficient stock for: " + name);
+            throw new BadRequestException(
+                    "Insufficient stock for item: " + name +
+                            ". Available: " + (stockQuantity != null ? stockQuantity : 0));
         }
         this.stockQuantity -= quantity;
         if (this.stockQuantity == 0) {
@@ -41,8 +49,12 @@ public class MenuItem {
         }
     }
 
-    // Getters and setters
+    public void restoreStock(int quantity) {
+        this.stockQuantity += quantity;
+        this.available = true;
+    }
 
+    // Getters and Setters
     public Long getId() {
         return id;
     }
